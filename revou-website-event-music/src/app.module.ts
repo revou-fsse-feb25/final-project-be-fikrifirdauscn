@@ -4,12 +4,16 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { CategoryModule } from './category/category.module';
+import { EventModule } from './event/event.module';
+import { BookingModule } from './booking/booking.module';
 
 @Module({
   imports: [
     PrismaModule,
     AuthModule,
-    CategoryModule, 
+    CategoryModule,
+    EventModule,
+    BookingModule, 
   ],
   controllers: [AppController],
   providers: [AppService],
