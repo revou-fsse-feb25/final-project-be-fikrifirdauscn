@@ -22,41 +22,40 @@ import { Roles } from '../auth/decorators/roles.decorator'; // Import Roles deco
 import { Role } from '@prisma/client'; // Import Role enum
 
 @Controller('events')
-// Semua rute di controller ini memerlukan autentikasi
-@UseGuards(AuthGuard('jwt'), RolesGuard)
 export class EventController {
   constructor(private readonly eventService: EventService) {}
 
   @Post()
+  @UseGuards(AuthGuard('jwt'), RolesGuard) // <-- Pindahkan ke sini
   @HttpCode(HttpStatus.CREATED)
-  @Roles(Role.ADMIN) // Hanya admin yang bisa membuat event
+  @Roles(Role.ADMIN)
   create(@Body() createEventDto: CreateEventDto) {
     return this.eventService.create(createEventDto);
   }
 
   @Get()
-  // Semua user (USER atau ADMIN) bisa melihat daftar event
-  // Tidak perlu @Roles di sini, karena AuthGuard sudah memastikan user login.
-  // Jika Anda ingin *tidak perlu* login untuk melihat daftar event,
-  // Anda bisa menghapus @UseGuards dari findAll() atau dari controller level.
+  // <-- Rute ini sekarang publik
   findAll() {
     return this.eventService.findAll();
   }
 
   @Get(':id')
+  // <-- Rute ini juga publik
   findOne(@Param('id') id: string) {
     return this.eventService.findOne(id);
   }
 
   @Patch(':id')
-  @Roles(Role.ADMIN) // Hanya admin yang bisa mengupdate event
+  @UseGuards(AuthGuard('jwt'), RolesGuard) // <-- Pindahkan ke sini
+  @Roles(Role.ADMIN)
   update(@Param('id') id: string, @Body() updateEventDto: UpdateEventDto) {
     return this.eventService.update(id, updateEventDto);
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT) // 204 No Content untuk delete berhasil tanpa body
-  @Roles(Role.ADMIN) // Hanya admin yang bisa menghapus event
+  @UseGuards(AuthGuard('jwt'), RolesGuard) // <-- Pindahkan ke sini
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Roles(Role.ADMIN)
   remove(@Param('id') id: string) {
     return this.eventService.remove(id);
   }
