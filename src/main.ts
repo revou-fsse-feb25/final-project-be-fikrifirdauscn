@@ -15,10 +15,8 @@ async function bootstrap() {
   );
 
 
-  const origins = ['https://final-project-fe-fikrifirdauscn-vts.vercel.app/','http://localhost:3001']
-    .map((o) => o.trim())
-    .filter(Boolean);
-
+  const origins = ['https://final-project-fe-fikrifirdauscn-vts.vercel.app/','http://localhost:3001'];
+  
   app.enableCors({
     origin: origins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
