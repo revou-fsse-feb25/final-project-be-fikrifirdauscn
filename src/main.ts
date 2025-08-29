@@ -15,12 +15,15 @@ async function bootstrap() {
   );
 
 
-  const origins = ['https://final-project-fe-fikrifirdauscn-vts.vercel.app/','http://localhost:3001'];
-  
+  const origins = [
+  process.env.FRONTEND_ORIGIN ?? 'https://final-project-fe-fikrifirdauscn-vts.vercel.app', // ⬅️ tanpa trailing slash
+  'http://localhost:3001',
+];
+  app.setGlobalPrefix('api');
   app.enableCors({
     origin: origins,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: false,
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'Origin'],
     exposedHeaders: ['Content-Length', 'X-Total-Count']
   });
