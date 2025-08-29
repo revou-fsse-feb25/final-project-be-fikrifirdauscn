@@ -21,6 +21,9 @@ import { RolesGuard } from '../auth/guards/roles.guard'; // Import RolesGuard
 import { Roles } from '../auth/decorators/roles.decorator'; // Import Roles decorator
 import { Role } from '@prisma/client'; // Import Role enum
 
+// music-event-backend/src/event/event.controller.ts
+// ... import lainnya
+
 @Controller('events')
 export class EventController {
   constructor(private readonly eventService: EventService) {}
