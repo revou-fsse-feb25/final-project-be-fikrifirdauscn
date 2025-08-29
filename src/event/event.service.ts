@@ -11,15 +11,11 @@ export class EventService {
     const { name, date, totalTickets, categoryId, ...rest } = createEventDto;
 
     const existingEvent = await this.prisma.event.findUnique({ where: { name } });
-    if (existingEvent) {
-      throw new ConflictException('Event dengan nama ini sudah ada.');
-    }
+    if (existingEvent) throw new ConflictException('Event dengan nama ini sudah ada.');
 
     if (categoryId) {
       const category = await this.prisma.category.findUnique({ where: { id: categoryId } });
-      if (!category) {
-        throw new BadRequestException('ID Kategori tidak valid.');
-      }
+      if (!category) throw new BadRequestException('ID Kategori tidak valid.');
     }
 
     return this.prisma.event.create({
@@ -34,77 +30,84 @@ export class EventService {
     });
   }
 
-  
-  async findAll() {
-    return this.prisma.event.findMany({
-      orderBy: { date: 'asc' },
-      include: { category: true },
+  // ← menerima filter publik
+async findAll(filters: { name?: string, artist?: string, categoryId?: string }) {
+  console.log('Filters yang diterima:', filters);
+  const { name, categoryId } = filters;
+  const where: any = {
+    AND: []
+  };
+
+  if (name) {
+    where.AND.push({
+      OR: [
+        { name: { contains: name, mode: 'insensitive' } },
+        { artist: { contains: name, mode: 'insensitive' } } // <-- Tambahkan logika pencarian artis
+      ]
     });
   }
+  if (categoryId) {
+    where.AND.push({ categoryId });
+  }
 
-  
+  // Jika tidak ada filter, hapus AND agar tidak menghasilkan error
+  if (where.AND.length === 0) {
+    delete where.AND;
+  }
+
+  return this.prisma.event.findMany({
+    where,
+    orderBy: { date: 'asc' },
+    include: { category: true },
+  });
+}
+
   async findOne(id: string) {
     const event = await this.prisma.event.findUnique({
       where: { id },
       include: { category: true },
     });
-    if (!event) {
-      throw new NotFoundException(`Event dengan ID "${id}" tidak ditemukan.`);
-    }
+    if (!event) throw new NotFoundException(`Event dengan ID "${id}" tidak ditemukan.`);
     return event;
   }
 
-  
   async update(id: string, updateEventDto: UpdateEventDto) {
     const existingEvent = await this.prisma.event.findUnique({ where: { id } });
-    if (!existingEvent) {
-      throw new NotFoundException(`Event dengan ID "${id}" tidak ditemukan.`);
-    }
-    
+    if (!existingEvent) throw new NotFoundException(`Event dengan ID "${id}" tidak ditemukan.`);
+
     const dataToUpdate: any = {
-        ...updateEventDto,
-        date: updateEventDto.date ? new Date(updateEventDto.date) : undefined,
+      ...updateEventDto,
+      date: updateEventDto.date ? new Date(updateEventDto.date) : undefined,
     };
 
-    if (updateEventDto.totalTickets !== undefined && updateEventDto.totalTickets < existingEvent.totalTickets) {
-      const bookedTickets = existingEvent.totalTickets - existingEvent.availableTickets;
-      if (updateEventDto.totalTickets < bookedTickets) {
-        throw new BadRequestException(`Total tiket baru (${updateEventDto.totalTickets}) tidak boleh kurang dari tiket yang sudah dibooking (${bookedTickets}).`);
+    if (updateEventDto.totalTickets !== undefined) {
+      const booked = existingEvent.totalTickets - existingEvent.availableTickets;
+      if (updateEventDto.totalTickets < booked) {
+        throw new BadRequestException(
+          `Total tiket baru (${updateEventDto.totalTickets}) tidak boleh kurang dari tiket yang sudah dibooking (${booked}).`,
+        );
       }
-      dataToUpdate.availableTickets = updateEventDto.totalTickets - bookedTickets;
-    } else if (updateEventDto.totalTickets !== undefined && updateEventDto.totalTickets > existingEvent.totalTickets) {
-      dataToUpdate.availableTickets = existingEvent.availableTickets + (updateEventDto.totalTickets - existingEvent.totalTickets);
+      dataToUpdate.availableTickets = updateEventDto.totalTickets - booked;
     }
-    
+
     if (updateEventDto.categoryId) {
-        const category = await this.prisma.category.findUnique({ where: { id: updateEventDto.categoryId } });
-        if (!category) {
-            throw new BadRequestException('ID Kategori tidak valid.');
-        }
-        dataToUpdate.category = { connect: { id: updateEventDto.categoryId } };
+      const category = await this.prisma.category.findUnique({ where: { id: updateEventDto.categoryId } });
+      if (!category) throw new BadRequestException('ID Kategori tidak valid.');
+      dataToUpdate.category = { connect: { id: updateEventDto.categoryId } };
     } else if (updateEventDto.categoryId === null) {
-        dataToUpdate.category = { disconnect: true };
+      dataToUpdate.category = { disconnect: true };
     }
-    
     delete dataToUpdate.categoryId;
 
-    return this.prisma.event.update({
-      where: { id },
-      data: dataToUpdate,
-    });
+    return this.prisma.event.update({ where: { id }, data: dataToUpdate });
   }
 
-  
   async remove(id: string) {
     const event = await this.prisma.event.findUnique({ where: { id } });
-    if (!event) {
-      throw new NotFoundException(`Event dengan ID "${id}" tidak ditemukan.`);
-    }
+    if (!event) throw new NotFoundException(`Event dengan ID "${id}" tidak ditemukan.`);
 
     const bookingsCount = await this.prisma.booking.count({ where: { eventId: id } });
-    if (bookingsCount > 0) {
-      throw new ConflictException('Tidak dapat menghapus event karena ada booking yang terkait.');
-    }
+    if (bookingsCount > 0) throw new ConflictException('Tidak dapat menghapus event karena ada booking yang terkait.');
 
     return this.prisma.event.delete({ where: { id } });
   }

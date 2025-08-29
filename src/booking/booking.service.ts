@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 
@@ -33,7 +33,7 @@ export class BookingService {
     
     const totalPrice = updatedEvent.price * numberOfTickets;
 
-   
+    
     const booking = await this.prisma.booking.create({
       data: {
         userId,
@@ -43,7 +43,7 @@ export class BookingService {
       },
       include: {
         event: {
-          select: { name: true, date: true, artist: true, location: true }, 
+          select: { name: true, date: true, artist: true, location: true },
         },
       },
     });
@@ -51,7 +51,6 @@ export class BookingService {
     return booking;
   }
 
-  
   async findMyBookings(userId: string) {
     return this.prisma.booking.findMany({
       where: { userId },
@@ -64,16 +63,39 @@ export class BookingService {
     });
   }
 
-  
   async findAllBookings() {
     return this.prisma.booking.findMany({
       include: {
-        user: { select: { name: true, email: true } }, 
+        user: { select: { name: true, email: true } },
         event: {
           select: { name: true, date: true, artist: true, location: true },
         },
       },
       orderBy: { bookingDate: 'desc' },
     });
+  }
+
+  async remove(bookingId: string, userId: string) {
+    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } });
+    if (!booking) {
+      throw new NotFoundException('Pemesanan tidak ditemukan.');
+    }
+
+    if (booking.userId !== userId) {
+      throw new UnauthorizedException('Anda tidak diizinkan menghapus pemesanan ini.');
+    }
+
+    // Kembalikan jumlah tiket ke event
+    await this.prisma.event.update({
+      where: { id: booking.eventId },
+      data: {
+        availableTickets: {
+          increment: booking.numberOfTickets,
+        },
+      },
+    });
+
+    // Hapus pemesanan
+    return this.prisma.booking.delete({ where: { id: bookingId } });
   }
 }

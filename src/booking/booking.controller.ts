@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get, Req } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get, Req, Delete, Param } from '@nestjs/common';
 import { BookingService } from './booking.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -15,21 +15,28 @@ export class BookingController {
   @HttpCode(HttpStatus.CREATED)
   @Roles(Role.USER, Role.ADMIN)
   async create(@Req() req, @Body() createBookingDto: CreateBookingDto) {
-
     const userId = req.user.id;
     return this.bookingService.create(userId, createBookingDto);
   }
 
   @Get('my')
-  @Roles(Role.USER, Role.ADMIN) 
+  @Roles(Role.USER, Role.ADMIN)
   async findMyBookings(@Req() req) {
     const userId = req.user.id;
     return this.bookingService.findMyBookings(userId);
   }
 
   @Get()
-  @Roles(Role.ADMIN) 
+  @Roles(Role.ADMIN)
   async findAllBookings() {
     return this.bookingService.findAllBookings();
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Roles(Role.USER, Role.ADMIN)
+  async remove(@Req() req, @Param('id') id: string) {
+    const userId = req.user.id;
+    return this.bookingService.remove(id, userId);
   }
 }

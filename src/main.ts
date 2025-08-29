@@ -14,7 +14,7 @@ async function bootstrap() {
     }),
   );
 
-  // Origins boleh koma-seperated di env FRONTEND_ORIGINS
+  
   const origins = (process.env.FRONTEND_ORIGINS || 'http://localhost:3001')
     .split(',')
     .map((o) => o.trim())
@@ -26,7 +26,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // (Opsional) graceful shutdown
+  
   app.enableShutdownHooks();
 
   const port = parseInt(process.env.PORT || '3000', 10);
